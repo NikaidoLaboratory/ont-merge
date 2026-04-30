@@ -9,30 +9,60 @@ sample 単位で 1 ファイルに merge し、`<run-name>_<sample-name>.fastq.g
 
 ## 背景 (Background)
 
-Oxford Nanopore Technologies (ONT) のシーケンサー (PromethION / GridION / MinION) では、
-basecall を sequencing と同時に走らせると、MinKNOW が **時間刻みで `fastq.gz` chunk を
-`fastq_pass/` に書き出していく**。 **native_barcoding kit** で barcode 配列により sample を
-分離した場合は、`barcode01/`、`barcode02/`、… のような **barcode 別 subdir** が作られ、その
-下に時間ごとの chunk が格納される。一方 **ligation kit** のように barcode 分離がない場合は、
-subdir なしで `fastq_pass/` 直下に chunk が直接置かれる。
+Oxford Nanopore Technologies (ONT) のシーケンサー (PromethION / GridION /
+MinION) においては、basecall を sequencing と並行して実行した場合、MinKNOW は
+**時間刻みで分割された `fastq.gz` chunk** を `fastq_pass/` に逐次書き出す。
+**native_barcoding kit** で barcode 配列による sample 分離を行った場合は、
+`barcode01/`、`barcode02/`、… といった **barcode 別 subdir** が作成され、その
+下に時間ごとの chunk が格納される。一方、**ligation kit** のように barcode
+分離が行われない場合は subdir は作成されず、chunk は `fastq_pass/` 直下に
+書き出される。
 
-実際にこれらの fastq を後続解析で使うときは、sample ごとに:
+これらの FASTQ を後続解析で利用する際の典型的な要件は、sample ごとに以下の
+2 点である:
 
-1. **chunk を merge して 1 ファイルに**したい (時間スライスのまま扱いたくない)
-2. **sample 固有の human readable な名前**が付いている方が、後の解析における可視性・追跡性が
-   高い
+1. **chunk を merge した単一の `.fastq.gz`**(時間スライスのまま扱わない)
+2. **sample 固有の human-readable な命名**(後続解析における可視性および
+   追跡性の確保)
 
-この 2 つを **一括で行う仕組みが ONT 側からは提供されていない**。
+ONT の公式エコシステムには、これらの要件を満たすための構成要素は概ね既に
+提供されている。MinKNOW は run 開始時に sample sheet を読み込み、`alias` を
+folder 名・FASTQ header・`sequencing_summary` へ伝播させる機能を有する。
+Dorado には `--sample-sheet` オプションがあり、sample 名を反映した basecall
+出力を生成可能である。EPI2ME Labs の `fastcat` は per-sample chunk の sanitize
+および concatenate を担い、EPI2ME / `wf-*` の Nextflow workflows は
+`barcode,alias` 形式の CSV を入力としてパイプライン全体を orchestrate する。
+ただし、いずれも本ツールが対象とする用途とは想定される運用層がやや異なる。
+MinKNOW samplesheet は run 開始**前**に設定する必要があり、終了済みの run に
+は適用できない。`dorado --sample-sheet` は POD5 からの再 basecall を行うため、
+concurrent basecall によって FASTQ が既に得られている場合には計算資源の冗長
+化を伴う。`fastcat` は multi-sample sheet を直接受け付けず、1 サンプル
+ごとの呼び出しを前提とする。EPI2ME workflows は Nextflow および Docker /
+Singularity runtime を要する。
 
-一方 Illumina 側ではこの問題は実質的に解決済みで、wet 研究者が sample sheet を 1 枚埋めれば、
-`bcl2fastq` (or `bcl-convert`) がそれを読んで sample 名つきの fastq を直接出力する。さらに
-Illumina の sample sheet は、各 fastq とその sample の **実験条件・run 条件などの metadata
-との紐付けハブ** としても機能する。同じ流儀を ONT 側にも持ち込んで、sample 名がついた
-merged fastq を 1 枚の sample sheet から得たい — それが `ont-merge` の出発点。
+加えて、これらの構成要素を実運用において組み合わせる場合には、利用上の隙間が
+生じる。wet 側は各段階ごとに個別の metadata(MinKNOW samplesheet、basecaller
+の引数、demultiplexing の設定、downstream workflow 用の samplesheet 等)を
+準備する必要があり、dry 側もまた、sample 名を含む merged FASTQ を得るまでに
+複数の処理段階を経る必要がある。metadata が複数箇所に分散した形で保持される
+点は、後段の解析における再利用も困難にする。実験者の視点に立てば、必要な
+情報をあらかじめ 1 枚の metadata シートに集約しておけば、そこから直接
+ready-to-use な per-sample `<run-name>_<sample-name>.fastq.gz` が得られる、
+という単純な構造が望ましい。これは Illumina エコシステムにおいて `bcl2fastq` /
+`bcl-convert` が単一の `SampleSheet.csv` を入力として per-sample FASTQ を
+1 step で出力する枠組みと同一の発想である。
 
-実装は **意図的にミニマム**: CSV (sample sheet) + bash (本体 script) だけで動く。conda
-環境も Nextflow runtime も Python interpreter も追加で必要ない。Linux 標準の toolchain
-だけで完結するので、wet 研究者が sheet と script を端から端まで読み解ける。
+`ont-merge` は、ONT 側におけるこの隙間を埋めることを目的とする。すなわち、
+1 枚の Illumina 風 sample sheet を入力として、既に basecall 済みの MinKNOW
+出力に対し chunk の merge と sample 名を反映した rename を、追加の runtime
+や段階別設定を要さずに実行する。上記の公式 tooling を置き換えるものではなく、
+これを補完するものとして位置づける。
+
+実装は **意図的にミニマル**に保たれている。CSV (sample sheet) および bash
+単体スクリプトのみで動作し、conda 環境・Nextflow runtime・Python interpreter
+等の追加要件は伴わない。Linux 標準の toolchain のみで完結することにより、
+sample sheet および本体スクリプトの双方を、wet 側および将来のメンテナの
+両者が end-to-end に通読可能な状態を維持している。
 
 ## 目的 (Purpose)
 

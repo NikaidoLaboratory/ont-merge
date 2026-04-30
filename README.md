@@ -8,30 +8,59 @@ alongside, and record full provenance — all driven by a single Illumina-style 
 
 ## Background
 
-On Oxford Nanopore Technologies (ONT) sequencers (PromethION / GridION / MinION), when
-basecalling runs concurrently with sequencing, MinKNOW emits **time-sliced `fastq.gz` chunks**
-into `fastq_pass/`. With **native_barcoding** kits the chunks are further split into per-barcode
-subdirectories (`barcode01/`, `barcode02/`, ...). With **ligation** kits there is no per-barcode
-split and chunks land directly under `fastq_pass/`.
+On Oxford Nanopore Technologies (ONT) sequencers (PromethION / GridION / MinION),
+when basecalling is performed concurrently with sequencing, MinKNOW writes
+**time-sliced `fastq.gz` chunks** into `fastq_pass/`. Under **native_barcoding**
+chemistries the chunks are further partitioned into per-barcode subdirectories
+(`barcode01/`, `barcode02/`, ...), whereas under **ligation** chemistries no
+per-barcode subdirectory is created and chunks are written directly under
+`fastq_pass/`.
 
-For downstream analysis, per sample, we almost always want:
+For downstream analysis, the typical per-sample requirements are as follows:
 
-1. **One merged `.fastq.gz`** instead of dozens of time-sliced chunks
-2. **A human-readable, sample-specific filename** so that visibility and traceability across
-   the rest of the analysis are preserved
+1. **A single merged `.fastq.gz`**, in place of the time-sliced chunks
+2. **A human-readable, sample-specific filename**, so that visibility and
+   traceability are preserved across the rest of the analysis
 
-ONT does not ship a tool that does both in one step.
+The official ONT ecosystem already provides most of the constituent
+capabilities needed to satisfy these requirements. MinKNOW supports sample-sheet
+ingestion at run start, propagating the `alias` field into folder names, FASTQ
+headers, and the `sequencing_summary` file. Dorado offers a `--sample-sheet`
+option for sample-aware basecall output. The EPI2ME Labs `fastcat` tool
+sanitises and concatenates per-sample chunks. The EPI2ME / `wf-*` Nextflow
+workflows orchestrate the full pipeline given a `barcode,alias` CSV. These
+components, however, operate at slightly different layers from the niche
+addressed in this work: a MinKNOW samplesheet must be configured **before** a
+run begins and cannot be applied retroactively; `dorado --sample-sheet` performs
+basecalling from POD5, which is computationally redundant when concurrent
+basecalling has already produced the corresponding FASTQ output; `fastcat` is
+invoked once per sample rather than consuming a multi-sample sheet directly;
+and the EPI2ME workflows require a Nextflow plus Docker/Singularity runtime.
 
-The Illumina ecosystem effectively solved this years ago: the wet lab fills in a single sample
-sheet, `bcl2fastq` (or `bcl-convert`) reads it, and the output is one sample-named FASTQ per
-sample. The same sample sheet doubles as a hub for linking each FASTQ to its experimental and
-run-condition metadata. We wanted that exact pattern on the ONT side, ending in a merged FASTQ
-that already carries the sample name.
+In practice, combining these components leaves a usability gap. The wet-lab
+side is required to prepare separate metadata at each stage — a MinKNOW
+samplesheet at run start, basecaller arguments, demultiplexing parameters, and
+a workflow-specific samplesheet downstream — and the dry-lab side, in turn,
+must orchestrate several discrete steps before a per-sample, sample-named
+FASTQ is in hand. Holding the metadata in this fragmented form also complicates
+its reuse in subsequent analyses. From the experimenter's perspective, the
+preferable arrangement is straightforward: a single metadata sheet, populated
+once, from which a ready-to-use per-sample `<run-name>_<sample-name>.fastq.gz`
+follows directly — the same pattern that the Illumina ecosystem already
+realises, where `bcl2fastq` / `bcl-convert` consumes a single `SampleSheet.csv`
+and emits per-sample FASTQ in a single step.
 
-`ont-merge` is **intentionally minimal**: a CSV sample sheet plus a single bash script. No
-conda environment, no Nextflow runtime, no Python interpreter — just what ships with a stock
-Linux toolchain, so any wet researcher (and any future you) can read both the sheet and the
-script end to end.
+`ont-merge` is intended to fill exactly this gap on the ONT side: a single
+Illumina-style sample sheet drives both chunk merging and sample-aware renaming
+for already-basecalled MinKNOW output, without additional runtime or per-stage
+configuration. It is positioned as a complement to, not a replacement for, the
+official ONT tooling described above.
+
+The implementation is deliberately minimal: a CSV sample sheet together with a
+single bash script. No conda environment, Nextflow runtime, or Python
+interpreter is required — only the standard Linux toolchain — so that both the
+sample sheet and the script can be inspected end-to-end by wet-lab investigators
+as well as by future maintainers.
 
 ## Purpose
 
