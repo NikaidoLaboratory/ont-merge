@@ -148,8 +148,8 @@ ont-merge/
     │   ├── ligation.samplesheet.csv                     # smoke (ligation)
     │   ├── native_barcoding/                            # generated fastq tree
     │   └── ligation/                                    # generated fastq tree
-    └── toydata/                                         # real-size reference (fastq + matched sheet)
-        ├── 20260225_P_N11424_conditionAB_t/   # MinKNOW run dir copy (~93 MB)
+    └── toydata/                                         # real-size reference (FASTQ + matched sheet, ~3 MB tracked)
+        ├── 20260225_P_N11424_conditionAB_t/   # MinKNOW run dir copy: FASTQ trees only (pod5 / MinKNOW metadata excluded via .gitignore)
         └── conditionAB_t.samplesheet.csv      # paired sample sheet (points into toydata)
 ```
 
