@@ -156,27 +156,30 @@ ont-merge/
 ## Usage
 
 ```bash
-# 1. Smoke test with bundled dummy fixtures
-bash tests/dummydata/make_dummy.sh
-bash ont-merge.sh -s tests/dummydata/native.samplesheet.csv   -o output/_smoke_native
-bash ont-merge.sh -s tests/dummydata/ligation.samplesheet.csv -o output/_smoke_ligation
+git clone git@github.com:NikaidoLaboratory/ont-merge.git
+cd ont-merge
 
-# 1b. (Optional) End-to-end check against the real-size toydata copy
-bash ont-merge.sh -s tests/toydata/conditionAB_t.samplesheet.csv \
-                  -o output/_toydata_flashseq
+# Smoke test against the bundled toydata (real-size fixture, ~3 MB)
+./ont-merge.sh -s tests/toydata/conditionAB_t.samplesheet.csv \
+               -o output/_smoke_toydata
 
-# 2. Real run: build a sample sheet from the template, then merge.
-#    The script snapshots the input sheet to <out_dir>/_used_<basename>.csv,
-#    so there is no need to keep the original sheet under any specific dir;
-#    the per-run output directory is self-describing.
+# Real run
 cp samplesheet.example.csv my_run.samplesheet.csv
 $EDITOR my_run.samplesheet.csv
 OUT="output/$(date +%Y%m%d_%H%M%S)_my_run"
-bash ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -n   # dry-run
-bash ont-merge.sh -s my_run.samplesheet.csv -o "$OUT"      # real
+./ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -n   # dry-run preview
+./ont-merge.sh -s my_run.samplesheet.csv -o "$OUT"      # real
 
-# 3. Re-run on the same out_dir (must use -f to overwrite)
-bash ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -f
+# Re-run on the same out_dir (use -f to overwrite)
+./ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -f
+```
+
+### Optional: tiny synthetic fixture (regenerates dummy data)
+
+```bash
+bash tests/dummydata/make_dummy.sh
+./ont-merge.sh -s tests/dummydata/native.samplesheet.csv   -o output/_smoke_native
+./ont-merge.sh -s tests/dummydata/ligation.samplesheet.csv -o output/_smoke_ligation
 ```
 
 ### CLI options
@@ -211,4 +214,4 @@ bash ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -f
 
 ## License
 
-TBD.
+MIT — see [LICENSE](./LICENSE).

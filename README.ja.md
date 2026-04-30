@@ -158,26 +158,30 @@ ont-merge/
 ## 使い方 (Usage)
 
 ```bash
-# 1. 同梱 dummy fixture で smoke test
-bash tests/dummydata/make_dummy.sh
-bash ont-merge.sh -s tests/dummydata/native.samplesheet.csv   -o output/_smoke_native
-bash ont-merge.sh -s tests/dummydata/ligation.samplesheet.csv -o output/_smoke_ligation
+git clone git@github.com:NikaidoLaboratory/ont-merge.git
+cd ont-merge
 
-# 1b. (任意) 実サイズの toydata copy で end-to-end 確認
-bash ont-merge.sh -s tests/toydata/conditionAB_t.samplesheet.csv \
-                  -o output/_toydata_flashseq
+# 同梱 toydata (実サイズ fixture、約 3 MB) で smoke test
+./ont-merge.sh -s tests/toydata/conditionAB_t.samplesheet.csv \
+               -o output/_smoke_toydata
 
-# 2. 実 run: template から sample sheet を作って merge。
-#    入力 sheet は <out_dir>/_used_<basename>.csv に snapshot されるため、
-#    original を特定の dir に残しておく必要はない (出力 dir 自体が自己記述的)
+# 実 run
 cp samplesheet.example.csv my_run.samplesheet.csv
 $EDITOR my_run.samplesheet.csv
 OUT="output/$(date +%Y%m%d_%H%M%S)_my_run"
-bash ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -n   # dry-run
-bash ont-merge.sh -s my_run.samplesheet.csv -o "$OUT"      # 本実行
+./ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -n   # dry-run で確認
+./ont-merge.sh -s my_run.samplesheet.csv -o "$OUT"      # 本実行
 
-# 3. 同じ out_dir に再実行 (上書き許可)
-bash ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -f
+# 同じ out_dir に再実行 (-f で上書き)
+./ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -f
+```
+
+### 任意: 擬似データの smoke test (tiny synthetic fixture を再生成)
+
+```bash
+bash tests/dummydata/make_dummy.sh
+./ont-merge.sh -s tests/dummydata/native.samplesheet.csv   -o output/_smoke_native
+./ont-merge.sh -s tests/dummydata/ligation.samplesheet.csv -o output/_smoke_ligation
 ```
 
 ### CLI オプション
@@ -210,4 +214,4 @@ bash ont-merge.sh -s my_run.samplesheet.csv -o "$OUT" -f
 
 ## License
 
-TBD.
+MIT — see [LICENSE](./LICENSE).
