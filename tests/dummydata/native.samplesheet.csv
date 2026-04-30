@@ -1,0 +1,18 @@
+# Smoke-test sample sheet: dummy native_barcoding run.
+# Generated to be parsable by ont-merge.sh against tests/dummydata fixtures.
+
+[Header]
+project,Smoke test (native_barcoding)
+date,2026-04-28
+operator,
+description,Dummy run produced by tests/dummydata/make_dummy.sh
+
+[Run]
+fastq_dir,/home/sasagawa/dev-tools/ont-merge/tests/dummydata/native_barcoding/fastq_pass
+kit,native_barcoding
+run-name,dummy-native-run
+
+[Samples]
+barcode-number,sample-name
+barcode01,sampleA
+barcode02,sampleB

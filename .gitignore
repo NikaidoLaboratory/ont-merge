@@ -1,0 +1,89 @@
+# ont-merge .gitignore
+
+# ---- Run outputs (regenerable, possibly large) ----
+output/
+
+# ---- Agent / session logs (non-deliverable) ----
+agent_logs/
+
+# ---- Per-user Claude Code state ----
+# CLAUDE.md is tied to a specific local @-import path (sasagawa-only).
+CLAUDE.md
+.claude/
+
+# ---- Document snapshots (docs/YYYYMMDD_HHMMSS_*) ----
+# Older revisions of workflow.md / README*.md are kept on disk during work,
+# but git history already covers this, so they are excluded from commits.
+docs/20[0-9][0-9][0-9][0-9][0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9]_*
+
+# ---- Test fixtures: regenerable artefacts (produced by tests/dummydata/make_dummy.sh) ----
+tests/dummydata/native_barcoding/
+tests/dummydata/ligation/
+
+# ---- Test fixtures: real MinKNOW run copy ----
+# Track only the FASTQ trees (fastq_pass/, fastq_fail/) so toydata stays runnable
+# as a smoke fixture for ont-merge.sh. Everything else under the run dir is ignored:
+#   - pod5/        : heavy raw signals (~80 MB), unnecessary for ont-merge
+#   - other_reports/, report_*, *_summary_*, etc.
+#                  : MinKNOW-generated artefacts that may carry identifiers from the
+#                    original protocol; we don't publish them in this template repo.
+# ont-merge.sh tolerates the absence of report_* (warning only, merge is unaffected).
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/pod5/
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/other_reports/
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/report_*
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/barcode_alignment_*
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/final_summary_*
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/sequencing_summary_*
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/output_hash_*
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/pore_activity_*
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/sample_sheet_*
+tests/toydata/20260225_P_N11424_conditionAB_t/no_sample_id/*/throughput_*
+
+# ---- Raw sequencing data (never commit reads / alignments) ----
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.fast5
+*.pod5
+*.bam
+*.bai
+*.cram
+*.crai
+*.sam
+*.h5
+*.h5ad
+
+# ---- Exception: toydata FASTQ are intentionally tracked as smoke-test fixtures ----
+# (small, ~3 MB total; let users run `ont-merge.sh -s tests/toydata/...` directly after clone)
+!tests/toydata/**/*.fastq.gz
+!tests/toydata/**/*.fq.gz
+
+# ---- Credentials / environment files ----
+.env
+.envrc
+*.pem
+*.key
+credentials.json
+
+# ---- OS / editor junk ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ---- Generic temp / build ----
+*.log
+*.tmp
+tmp/
+temp/
+
+# ---- Python (in case future helpers are added) ----
+__pycache__/
+*.pyc
+.venv/
+venv/

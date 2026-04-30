@@ -1,0 +1,16 @@
+# Smoke-test sample sheet: dummy ligation run (single sample, no barcode subdir).
+
+[Header]
+project,Smoke test (ligation)
+date,2026-04-28
+operator,
+description,Dummy run produced by tests/dummydata/make_dummy.sh
+
+[Run]
+fastq_dir,/home/sasagawa/dev-tools/ont-merge/tests/dummydata/ligation/fastq_pass
+kit,ligation
+run-name,dummy-ligation-run
+
+[Samples]
+barcode-number,sample-name
+none,sampleC

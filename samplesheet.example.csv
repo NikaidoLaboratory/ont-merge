@@ -1,0 +1,27 @@
+# ont-merge.sh sample sheet (Illumina-style sections, CSV)
+# - One sheet = one sequencing run.
+# - [Header] is free-form metadata for humans; the parser ignores it.
+# - [Run] requires three keys (case-sensitive):
+#     fastq_dir : absolute path to MinKNOW's fastq_pass directory
+#     kit       : native_barcoding | ligation
+#     run-name  : prefix for output filenames (e.g. 20260225-flashseq-1st)
+# - [Samples] header line is fixed: barcode-number,sample-name
+#     native_barcoding -> barcode-number is barcodeNN (e.g. barcode01)
+#     ligation         -> barcode-number is "none" (or empty); exactly one row
+# - Lines beginning with # and blank lines are ignored.
+
+[Header]
+project,<project-name>
+date,YYYY-MM-DD
+operator,<your-name>
+description,<free text>
+
+[Run]
+fastq_dir,/var/lib/minknow/data/<run-folder>/no_sample_id/<flowcell-folder>/fastq_pass
+kit,native_barcoding
+run-name,YYYYMMDD-project-tag
+
+[Samples]
+barcode-number,sample-name
+barcode01,<sample-name-01>
+barcode02,<sample-name-02>
