@@ -22,6 +22,6 @@ kit,native_barcoding,,,,,,,,,,,,,,,
 run-name,YYYYMMDD-project-tag,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,
 [Samples],,,,,,,,,,,,,,,,
-barcode-number,sample-name,LDprep-person,LDprep-Date,LDprep-NoteFileName,pre-processing-type,pre-processing-person,pre-processing-Date,pre-processing-NoteFileName,sample-prepared-person,sample-prep-date,sample-NoteFilleName,sample-species,sample-tissue/cell,sample-conditions01,sample-conditions02,sample-conditions03
+barcode-number,sample-name,LDprep-person,LDprep-Date,LDprep-NoteFileName,pre-processing-type,pre-processing-person,pre-processing-Date,pre-processing-NoteFileName,sample-prepared-person,sample-prep-date,sample-NoteFileName,sample-species,sample-tissue/cell,sample-conditions01,sample-conditions02,sample-conditions03
 barcode01,<sample-name-01>,,,,,,,,,,,,,,,
 barcode02,<sample-name-02>,,,,,,,,,,,,,,,
