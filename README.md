@@ -151,6 +151,61 @@ barcode12,sampleA_75sec_2,"buffer X, treated",rep2,75sec
 - Downstream analyses can read the snapshot `_used_*.csv` to recover the full metadata
 - The script itself does not consume these columns today; if a future analysis step needs them (e.g. group-by condition), the parser can be extended without touching the sheet format
 
+### Recommended sample-sheet content for downstream traceability
+
+Because the sample sheet is snapshotted into the output directory as
+`_used_<original_samplesheet_filename>`, it sits **next to the FASTQ
+data** for the lifetime of the dataset. Anyone opening the output later
+— a collaborator, an auditor, future you — will read this single file
+to understand the run. Two complementary categories of information
+should therefore be recorded in the sheet.
+
+**1. Project intent — use the `[Header].description` field**
+
+A reader who is not familiar with the project can reconstruct the
+wet-lab steps from the per-sample columns, but cannot infer **why** the
+experiment was performed. The `description` line in `[Header]` is free
+text; use it to record that intent explicitly:
+
+- **Purpose of the experiment** — the underlying question being asked.
+- **Condition design** — how the samples span the conditions of
+  interest. Examples: "long-read spatial transcriptomics comparing
+  drug-treated vs untreated cortex", "20 samples spanning four PCR
+  polymerases to assess polymerase-driven bias", "titration across four
+  input-RNA amounts in duplicate".
+
+In short, answer *"what did we want to know, and what experimental
+system did we set up to answer it?"* here. This is the single piece of
+context that the per-sample columns cannot supply.
+
+**2. Operational provenance — populate the `[Samples]` extra columns**
+
+The `[Samples]` section accepts arbitrary extra columns beyond the
+required `barcode-number,sample-name` (see "Adding wet-lab metadata
+columns" above). Use these columns to record, per sample, the
+step-level provenance that later analyses or audits need:
+
+- **Library preparation** — when, by whom, and which notebook entry
+  (`LDprep-person`, `LDprep-Date`, `LDprep-NoteFileName`).
+- **Pre-processing** — type, operator, date, and notebook entry
+  (`pre-processing-type`, `pre-processing-person`,
+  `pre-processing-Date`, `pre-processing-NoteFileName`).
+- **Sample preparation** — operator, date, and notebook entry
+  (`sample-prepared-person`, `sample-prep-date`,
+  `sample-NoteFileName`).
+- **Sample attributes / conditions** — species, tissue or cell type,
+  and free-form condition columns (`sample-species`,
+  `sample-tissue/cell`, `sample-conditions01..03`).
+
+The bundled `samplesheet.example.csv` ships pre-populated with this
+column set as a recommended baseline. Columns can be added, renamed,
+or removed to match the project.
+
+Together, the two categories make the output directory self-describing:
+reading `_used_<original_samplesheet_filename>` answers both *"what was
+the project trying to learn?"* (Header) and *"who did what, when, and
+against which notebook entry?"* (Samples).
+
 ### Outputs (in `out_dir`)
 
 | File                                                  | Source                                  |

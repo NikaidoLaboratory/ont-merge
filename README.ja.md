@@ -154,6 +154,60 @@ barcode12,sampleA_75sec_2,"buffer X, treated",rep2,75sec
 - 下流解析では `_used_*.csv` を読めば追加列も含めた完全な metadata を復元できる
 - 現状 script 自体はこれらの列を消費しない。将来的に解析側で参照したくなれば (e.g. condition で group 化)、シート形式を変えずに parser 拡張で対応できる
 
+### 追跡性のために sample sheet に記載すべき内容
+
+sample sheet は出力 dir に `_used_<original_samplesheet_filename>` として
+snapshot されるため、データの生存期間にわたって **FASTQ の隣に置かれる**
+状態になる。後から出力 dir を開いた人 (共同研究者・監査担当・将来の自分)
+は、この 1 ファイルだけを読んで run を理解することになる。したがって、
+sample sheet には性質の異なる 2 種類の情報を併せて記載しておくべきである。
+
+**1. プロジェクトの意図 — `[Header].description` を活用する**
+
+プロジェクトに詳しくない読み手であっても、`[Samples]` の per-sample 列を
+辿れば wet 側の各工程は再構成できる。しかし、**なぜ** その実験を行ったのか
+は per-sample 列からは読み取れない。`[Header]` の `description` 行は
+free text なので、以下の観点を明示的に書き残す:
+
+- **実験の目的** — 何を明らかにしたいのか、根本的な問いは何か。
+- **条件設計** — sample が条件空間をどう張っているか。例:
+  「薬剤投与の有無を long-read 空間 transcriptome で比較する」、
+  「PCR polymerase 由来の bias を見るために 4 種類の polymerase を
+  20 sample でカバー」、「input RNA 量の 4 段階 titration を duplicate で
+  実施」など。
+
+要するに、ここでは *「何を知りたくて、それを明らかにするためにどのような
+実験系を組んだのか」* に答える。これは per-sample 列では絶対に補えない
+唯一の context であり、未来の読み手に対する単一の根拠となる。
+
+**2. 工程レベルの provenance — `[Samples]` 拡張列を埋める**
+
+`[Samples]` は必須の `barcode-number,sample-name` に加えて任意列を取れる
+(上記「ウェット側 metadata 列の追加」参照)。後段の解析・監査が必要とする
+sample 単位の工程情報は、ここに記録する:
+
+- **Library preparation** — いつ、誰が、対応する実験 note はどれか
+  (`LDprep-person`, `LDprep-Date`, `LDprep-NoteFileName`)。
+- **Pre-processing** — 種別・実施者・日付・対応 note
+  (`pre-processing-type`, `pre-processing-person`,
+  `pre-processing-Date`, `pre-processing-NoteFileName`)。
+- **Sample preparation** — 実施者・日付・対応 note
+  (`sample-prepared-person`, `sample-prep-date`,
+  `sample-NoteFileName`)。
+- **Sample 属性 / 条件** — species、tissue / cell type、および
+  free-form な condition 列 (`sample-species`,
+  `sample-tissue/cell`, `sample-conditions01..03`)。
+
+同梱の `samplesheet.example.csv` は、この列構成を **推奨 baseline**
+として既に pre-populate してある。project に応じて列を追加・改名・削除して
+良い。
+
+この 2 つを揃えて記入することで、出力 dir は self-describing になる。
+`_used_<original_samplesheet_filename>` を 1 枚読めば、
+*「project が何を明らかにしようとしていたのか」* (Header) と
+*「いつ・誰が・どの実験 note に基づいて・何をしたのか」* (Samples) の
+両方が即座に追える。
+
 ### 出力 (`out_dir` 内)
 
 | File                                                  | 由来                                    |
