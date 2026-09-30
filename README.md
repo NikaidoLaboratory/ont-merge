@@ -89,10 +89,11 @@ One sheet = one sequencing run. Lines starting with `#` and blank lines are igno
 project,Condition AB trial 1
 date,2026-02-25
 operator,
+sequencing-host,<workstation-name>
 description,Native barcoding run with two conditions, first trial
 
 [Run]
-fastq_dir,/var/lib/minknow/data/.../fastq_pass
+fastq_dir,/opt/mnt/fs000/raw/P2S-01086/.../fastq_pass
 kit,native_barcoding
 run-name,20260225-conditionAB-trial1
 
@@ -109,6 +110,7 @@ barcode12,sampleB
 project,Single-sample ligation run
 date,2026-04-28
 operator,
+sequencing-host,<workstation-name>
 description,Ligation kit - single sample run
 
 [Run]
@@ -126,11 +128,44 @@ exactly one data row — there is no per-barcode demultiplexing on the MinKNOW s
 
 | Section     | Parsed? | Notes                                                              |
 |-------------|---------|--------------------------------------------------------------------|
-| `[Header]`  | no      | Free-form metadata for humans                                      |
+| `[Header]`  | no      | Free-form metadata for humans (recommended row: `sequencing-host`) |
 | `[Run]`     | yes     | Required keys: `fastq_dir`, `kit`, `run-name`                      |
 | `[Samples]` | yes     | Fixed header `barcode-number,sample-name`. Rows are kit-filtered:  |
 |             |         | `native_barcoding` -> rows like `barcodeNN`                        |
 |             |         | `ligation`         -> rows with `none` or empty (exactly 1 row)    |
+
+### Where `fastq_dir` must point (which workstation?)
+
+`ont-merge.sh` has no notion of remote hosts: `fastq_dir` is resolved **on the host where the
+script runs** (existence check, then `cat`). The executing host is written to `_provenance.txt`
+as `user_at_host`. Consequently a path like `/var/lib/minknow/data/...` is valid **only on the
+workstation that ran MinKNOW**, and the sheet alone does not say which workstation that was.
+
+The recommended way to make a sheet host-independent is to point `fastq_dir` at a copy that is
+mounted **at the same path on every workstation**, typically the NAS backup of
+`/var/lib/minknow/data`. In our lab that copy is
+
+```text
+/opt/mnt/fs000/raw/P2S-01086/<run-folder>/<sample-id-folder>/<flowcell-folder>/fastq_pass
+```
+
+(read-only mount, refreshed nightly; `<sample-id-folder>` is the sample ID given to MinKNOW,
+or `no_sample_id` if none was given). A sheet written this way runs identically on any
+workstation, and the same path is what ends up in `_provenance.txt`.
+
+Two things to keep in mind when reading from a backup copy:
+
+- **Confirm the run has fully arrived before merging.** `ont-merge.sh` concatenates whatever
+  chunks exist and cannot detect a partial copy. Check that `final_summary_*` and `report_*`
+  exist in the copied run folder (MinKNOW writes them at the end of the run) and, if in doubt,
+  that per-barcode chunk counts match the source.
+- **Record the sequencing workstation in `[Header]`.** A NAS path no longer tells which
+  workstation sequenced the run, so add a `sequencing-host,<workstation-name>` row. `[Header]`
+  is ignored by the parser and preserved verbatim in the snapshot, so this costs nothing.
+
+If the merge is needed before the nightly copy has run, either run `ont-merge.sh` on the
+sequencing workstation itself (it needs only `bash`, `awk` and `cat`) or mount the remote
+directory on the current host (e.g. `sshfs`) and use the mount path as `fastq_dir`.
 
 ### Adding wet-lab metadata columns
 
@@ -177,6 +212,11 @@ text; use it to record that intent explicitly:
 In short, answer *"what did we want to know, and what experimental
 system did we set up to answer it?"* here. This is the single piece of
 context that the per-sample columns cannot supply.
+
+Also record **where the run was sequenced** here, as a
+`sequencing-host,<workstation-name>` row. `fastq_dir` may point to a NAS
+copy, in which case the workstation cannot be recovered from the path
+(see "Where `fastq_dir` must point" above).
 
 **2. Operational provenance — populate the `[Samples]` extra columns**
 

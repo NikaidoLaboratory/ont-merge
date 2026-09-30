@@ -91,10 +91,11 @@ sample sheet および本体スクリプトの双方を、wet 側および将来
 project,Condition AB trial 1
 date,2026-02-25
 operator,
+sequencing-host,<workstation-name>
 description,Native barcoding run with two conditions, first trial
 
 [Run]
-fastq_dir,/var/lib/minknow/data/.../fastq_pass
+fastq_dir,/opt/mnt/fs000/raw/P2S-01086/.../fastq_pass
 kit,native_barcoding
 run-name,20260225-conditionAB-trial1
 
@@ -111,6 +112,7 @@ barcode12,sampleB
 project,Single-sample ligation run
 date,2026-04-28
 operator,
+sequencing-host,<workstation-name>
 description,Ligation kit - single sample run
 
 [Run]
@@ -128,11 +130,45 @@ ligation の場合は MinKNOW 側で barcode demultiplex が走らないので�
 
 | Section     | parser が読む? | 内容                                                                |
 |-------------|----------------|---------------------------------------------------------------------|
-| `[Header]`  | ❌             | 人間向け free-form metadata                                          |
+| `[Header]`  | ❌             | 人間向け free-form metadata (推奨行: `sequencing-host`、下記参照)     |
 | `[Run]`     | ✅             | 必須 key: `fastq_dir`, `kit`, `run-name`                             |
 | `[Samples]` | ✅             | header 固定: `barcode-number,sample-name`。kit に応じて行が自動 filter:  |
 |             |                | `native_barcoding` → `barcodeNN` 形式の行                            |
 |             |                | `ligation`         → `none` または空の行 (1 行のみ)                  |
+
+### `fastq_dir` はどこを指すべきか (どの workstation の path か)
+
+`ont-merge.sh` はリモートホストという概念を持たない。`fastq_dir` は **script を実行している
+ホスト上で** 解決される (存在確認のあと `cat`)。実行ホストは `_provenance.txt` の
+`user_at_host` に記録される。したがって `/var/lib/minknow/data/...` のような path は
+**MinKNOW を動かした workstation 上でしか有効でなく**、sheet だけではそれがどの workstation
+だったか分からない。
+
+sheet をホスト非依存にする推奨の方法は、`fastq_dir` に **全 workstation で同じ path に
+mount されている copy**、典型的には `/var/lib/minknow/data` の NAS backup を指定すること。
+本ラボではその copy は
+
+```text
+/opt/mnt/fs000/raw/P2S-01086/<run-folder>/<sample-id-folder>/<flowcell-folder>/fastq_pass
+```
+
+(読み取り専用 mount、夜間に更新。`<sample-id-folder>` は MinKNOW に与えた sample ID、
+無指定なら `no_sample_id`)。この形で書いた sheet はどの workstation で実行しても同じ結果に
+なり、`_provenance.txt` にも同じ path が残る。
+
+backup copy から読むときの注意 2 点:
+
+- **merge する前に run が完全に到着していることを確認する。** `ont-merge.sh` は存在する
+  chunk をそのまま連結するだけで、copy が途中であることは検出できない。copy 先の run folder
+  に `final_summary_*` と `report_*` があること (MinKNOW は run 終了時に書き出す) を確認し、
+  疑わしければ barcode ごとの chunk 数が元と一致することも確認する。
+- **sequencing した workstation を `[Header]` に記録する。** NAS の path からはどの
+  workstation で sequencing したか分からなくなるので、`sequencing-host,<workstation-name>`
+  行を追加する。`[Header]` は parser が無視し、snapshot にそのまま保存されるので副作用は無い。
+
+夜間 copy を待たずに merge が必要な場合は、sequencing した workstation 上で `ont-merge.sh`
+を実行する (必要なのは `bash`・`awk`・`cat` のみ) か、リモート dir を現在のホストに mount
+して (例: `sshfs`) その mount path を `fastq_dir` に指定する。
 
 ### ウェット側 metadata 列の追加
 
@@ -179,6 +215,11 @@ free text なので、以下の観点を明示的に書き残す:
 要するに、ここでは *「何を知りたくて、それを明らかにするためにどのような
 実験系を組んだのか」* に答える。これは per-sample 列では絶対に補えない
 唯一の context であり、未来の読み手に対する単一の根拠となる。
+
+あわせて **どの workstation で sequencing したか** も
+`sequencing-host,<workstation-name>` 行としてここに記録する。`fastq_dir` が
+NAS copy を指している場合、path からは workstation が復元できないためである
+(上記「`fastq_dir` はどこを指すべきか」参照)。
 
 **2. 工程レベルの provenance — `[Samples]` 拡張列を埋める**
 

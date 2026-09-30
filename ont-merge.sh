@@ -29,7 +29,7 @@ Usage: ont-merge.sh -s <samplesheet.csv> -o <out_dir> [-n] [-f]
 One sample sheet = one sequencing run.
 
 [Run] keys (required):
-  fastq_dir : absolute path to MinKNOW's fastq_pass directory
+  fastq_dir : absolute path to MinKNOW's fastq_pass directory, as seen from the host running this script
   kit       : native_barcoding | ligation
   run-name  : prefix for output filenames
 
